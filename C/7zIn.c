@@ -1349,8 +1349,7 @@ SRes SzArEx_Extract(
     CSzFolder *folder = p->db.Folders + folderIndex;
     UInt64 unpackSizeSpec = SzFolder_GetUnpackSize(folder);
     size_t unpackSize = (size_t)unpackSizeSpec;
-    UInt64 startOffset = SzArEx_GetFolderStreamPos(p, folderIndex, 0);
-
+    UInt64 startOffset = SzArEx_GetFolderStreamPos(p, folderIndex, 0);	// position in file relative to start
     if (unpackSize != unpackSizeSpec)
       return SZ_ERROR_MEM;
     *blockIndex = folderIndex;

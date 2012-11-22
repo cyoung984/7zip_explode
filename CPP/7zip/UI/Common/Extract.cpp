@@ -116,7 +116,7 @@ HRESULT DecompressArchives(
 
   int numArcs = options.StdInMode ? 1 : arcPaths.Size();
 
-  for (i = 0; i < numArcs; i++)
+  for (i = 0; i < numArcs; i++) // make sure all archives are found
   {
     NFile::NFind::CFileInfoW fi;
     fi.Size = 0;
@@ -128,7 +128,7 @@ HRESULT DecompressArchives(
       if (fi.IsDir())
         throw "can't decompress folder";
     }
-    archiveSizes.Add(fi.Size);
+    archiveSizes.Add(fi.Size); // track expected sizes
     totalPackSize += fi.Size;
   }
   CArchiveExtractCallback *extractCallbackSpec = new CArchiveExtractCallback;
@@ -139,7 +139,7 @@ HRESULT DecompressArchives(
   {
     RINOK(extractCallback->SetTotal(totalPackSize));
   }
-  for (i = 0; i < numArcs; i++)
+  for (i = 0; i < numArcs; i++) // loop through and decode each archive
   {
     const UString &arcPath = arcPaths[i];
     NFile::NFind::CFileInfoW fi;
@@ -237,7 +237,7 @@ HRESULT DecompressArchives(
       }
     }
 
-    CArc &arc = archiveLink.Arcs.Back();
+    CArc &arc = archiveLink.Arcs.Back(); // i think archiveLink is for multi part archives
     arc.MTimeDefined = (!options.StdInMode && !fi.IsDevice);
     arc.MTime = fi.MTime;
 

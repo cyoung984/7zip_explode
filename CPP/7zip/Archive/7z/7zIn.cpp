@@ -1,7 +1,6 @@
 // 7zIn.cpp
-
 #include "StdAfx.h"
-
+//#include <sstream> // todo: remove
 #include "../../../../C/7zCrc.h"
 #include "../../../../C/CpuArch.h"
 
@@ -10,6 +9,15 @@
 
 #include "7zDecode.h"
 #include "7zIn.h"
+
+// todo: remove
+/*#include <assert.h>
+#include "../../Common/FileStreams.h"
+#include "7zOut.h"
+#include "../Common/HandlerOut.h"
+#include "7zItem.h"
+#include "../../Common/LimitedStreams.h"
+#include "../../Compress/CopyCoder.h"*/
 
 #define Get16(p) GetUi16(p)
 #define Get32(p) GetUi32(p)
@@ -132,6 +140,9 @@ static void ThrowIncorrect()   { ThrowException(CInArchiveException::kIncorrect)
 static void ThrowUnsupportedVersion() { ThrowException(CInArchiveException::kUnsupportedVersion); }
 */
 
+// This class is used for temporarily swapping the stream to read from.
+// When the CStreamSwitch object is destroyed the reading stream is 
+// switched back to the previous one (if any). Works like a stack. 
 class CStreamSwitch
 {
   CInArchive *_archive;
@@ -477,7 +488,7 @@ void CInArchive::WaitAttribute(UInt64 attribute)
 
 void CInArchive::ReadHashDigests(int numItems,
     CBoolVector &digestsDefined,
-    CRecordVector<UInt32> &digests)
+    CRecordVector<UInt32> &digests) // for each unpack stream
 {
   ReadBoolVector2(numItems, digestsDefined);
   digests.Clear();
@@ -498,9 +509,9 @@ void CInArchive::ReadPackInfo(
     CRecordVector<UInt32> &packCRCs)
 {
   dataOffset = ReadNumber();
-  CNum numPackStreams = ReadNum();
+  CNum numPackStreams = ReadNum(); // == number folders???
 
-  WaitAttribute(NID::kSize);
+  WaitAttribute(NID::kSize); // skip any other attributes, we just want to know the sizes.
   packSizes.Clear();
   packSizes.Reserve(numPackStreams);
   for (CNum i = 0; i < numPackStreams; i++)
@@ -536,7 +547,7 @@ void CInArchive::ReadUnpackInfo(
   WaitAttribute(NID::kFolder);
   CNum numFolders = ReadNum();
 
-  {
+  { // braces so streamSwitch only applies for this block
     CStreamSwitch streamSwitch;
     streamSwitch.Set(this, dataVector);
     folders.Clear();
@@ -687,12 +698,12 @@ void CInArchive::ReadSubStreamsInfo(
 
 void CInArchive::ReadStreamsInfo(
     const CObjectVector<CByteBuffer> *dataVector,
-    UInt64 &dataOffset,
-    CRecordVector<UInt64> &packSizes,
-    CBoolVector &packCRCsDefined,
-    CRecordVector<UInt32> &packCRCs,
+    UInt64 &dataOffset, // DataStartPosition
+    CRecordVector<UInt64> &packSizes, // PackSizes
+    CBoolVector &packCRCsDefined, // PackCRCsDefined
+    CRecordVector<UInt32> &packCRCs, // PackCRCs
     CObjectVector<CFolder> &folders,
-    CRecordVector<CNum> &numUnpackStreamsInFolders,
+    CRecordVector<CNum> &numUnpackStreamsInFolders, // NumUnpackStreamsVector
     CRecordVector<UInt64> &unpackSizes,
     CBoolVector &digestsDefined,
     CRecordVector<UInt32> &digests)
@@ -868,7 +879,9 @@ HRESULT CInArchive::ReadHeader(
     #endif
     )
 {
-  UInt64 type = ReadID();
+	printf("Buffer: %08X\n", _inByteBack->_buffer + _inByteBack->_pos);
+
+	UInt64 type = ReadID();
 
   if (type == NID::kArchiveProperties)
   {
@@ -902,11 +915,11 @@ HRESULT CInArchive::ReadHeader(
   {
     ReadStreamsInfo(&dataVector,
         db.ArchiveInfo.DataStartPosition,
-        db.PackSizes,
-        db.PackCRCsDefined,
-        db.PackCRCs,
-        db.Folders,
-        db.NumUnpackStreamsVector,
+        db.PackSizes, // need to set tihs
+        db.PackCRCsDefined, // and this
+        db.PackCRCs, // this too
+        db.Folders, // nope
+        db.NumUnpackStreamsVector, // and this
         unpackSizes,
         digestsDefined,
         digests);
@@ -950,9 +963,13 @@ HRESULT CInArchive::ReadHeader(
   CBoolVector antiFileVector;
   CNum numEmptyStreams = 0;
 
+  printf("Pre-loop Buffer: %08X\n", _inByteBack->_buffer + _inByteBack->_pos);
+  // change visibility back to private
   for (;;)
-  {
+  { 
+	
     UInt64 type = ReadID();
+	
     if (type == NID::kEnd)
       break;
     UInt64 size = ReadNumber();
@@ -967,8 +984,10 @@ HRESULT CInArchive::ReadHeader(
       {
         CStreamSwitch streamSwitch;
         streamSwitch.Set(this, &dataVector);
-        for (int i = 0; i < db.Files.Size(); i++)
+        for (int i = 0; i < db.Files.Size(); i++){
           _inByteBack->ReadString(db.Files[i].Name);
+		wprintf(L"[kName] File found! %s\n", db.Files[i].Name);
+		}
         break;
       }
       case NID::kWinAttributes:
@@ -1061,6 +1080,8 @@ HRESULT CInArchive::ReadHeader(
     if (numAntiItems != 0)
       db.IsAnti.Add(isAnti);
   }
+
+
   return S_OK;
 }
 
@@ -1132,6 +1153,21 @@ void CArchiveDatabaseEx::FillFolderStartFileIndex()
     }
   }
 }
+
+/*static HRESULT WriteRange(IInStream *inStream, ISequentialOutStream *outStream,
+	UInt64 position, UInt64 size, ICompressProgressInfo *progress)
+{
+	RINOK(inStream->Seek(position, STREAM_SEEK_SET, 0));
+	CLimitedSequentialInStream *streamSpec = new CLimitedSequentialInStream;
+	CMyComPtr<CLimitedSequentialInStream> inStreamLimited(streamSpec);
+	streamSpec->SetStream(inStream);
+	streamSpec->Init(size);
+
+	NCompress::CCopyCoder *copyCoderSpec = new NCompress::CCopyCoder;
+	CMyComPtr<ICompressCoder> copyCoder = copyCoderSpec;
+	RINOK(copyCoder->Code(inStreamLimited, outStream, NULL, NULL, progress));
+	return (copyCoderSpec->TotalSize == size ? S_OK : E_FAIL);
+}*/
 
 HRESULT CInArchive::ReadDatabase2(
     DECL_EXTERNAL_CODECS_LOC_VARS
@@ -1205,7 +1241,7 @@ HRESULT CInArchive::ReadDatabase2(
   CByteBuffer buffer2;
   buffer2.SetCapacity((size_t)nextHeaderSize);
 
-  RINOK(ReadStream_FALSE(_stream, buffer2, (size_t)nextHeaderSize));
+  RINOK(ReadStream_FALSE(_stream, buffer2, (size_t)nextHeaderSize)); // read the whole header
   HeadersSize += kHeaderSize + nextHeaderSize;
   db.PhySize = kHeaderSize + nextHeaderOffset + nextHeaderSize;
 
@@ -1217,11 +1253,13 @@ HRESULT CInArchive::ReadDatabase2(
   
   CObjectVector<CByteBuffer> dataVector;
   
-  UInt64 type = ReadID();
+  UInt64 type = ReadID(); // the next header type (directly after signature header) 
   if (type != NID::kHeader)
   {
+	// kEncodedHeaders are compressed and/or encrypted
     if (type != NID::kEncodedHeader)
       ThrowIncorrect();
+	// Decode the header and save it into dataVector.
     HRESULT result = ReadAndDecodePackedStreams(
         EXTERNAL_CODECS_LOC_VARS
         db.ArchiveInfo.StartPositionAfterHeader,
@@ -1237,20 +1275,173 @@ HRESULT CInArchive::ReadDatabase2(
     if (dataVector.Size() > 1)
       ThrowIncorrect();
     streamSwitch.Remove();
-    streamSwitch.Set(this, dataVector.Front());
-    if (ReadID() != NID::kHeader)
+    streamSwitch.Set(this, dataVector.Front()); // until the end of the function we want to read from what we decoded.
+    if (ReadID() != NID::kHeader) // it's been decoded so should be a valid header.
       ThrowIncorrect();
   }
 
   db.HeadersSize = HeadersSize;
 
-  return ReadHeader(
+  HRESULT result = ReadHeader(
     EXTERNAL_CODECS_LOC_VARS
     db
     #ifndef _NO_CRYPTO
     , getTextPassword, passwordIsDefined
     #endif
     );
+
+  return result;
+
+  /*{
+	  // use a stream reader and read data into a stream writer.
+	  // check how he does it.
+	  // For each file in the folder read/write it. Might want to sort
+	  // files into folders.
+	  // 
+	  UInt64 old;
+
+	  RINOK(_stream->Seek(db.ArchiveInfo.StartPositionAfterHeader, STREAM_SEEK_SET, &old));
+	  
+	  // Indices vectors are invalid until Fill is called, which isn't done
+  // when just listing the archive.
+  
+	  db.Fill();
+  printf("Folders %i, pack streams %i\n", db.Folders.Size(), db.PackSizes.Size());
+  //assert(db.Folders.Size() == db.PackSizes.Size());
+  //return result;
+  for (size_t i = 0; i < db.Files.Size(); i++) {
+	  CFileItem2 fInfo;
+	  CFileItem f;
+	  db.GetFile(i, f, fInfo);
+
+	  if (f.IsDir) {
+		  wprintf(L"Directory : %s\n", f.Name.GetBuffer(0));
+		  continue;
+	  }
+
+	  UInt64 folder = db.FileIndexToFolderIndexMap[i];	  
+	  
+
+	  wprintf(L"File: %s Size %llu Pack size %llu (folder %llu)\n", f.Name.GetBuffer(0),
+		  f.Size, db.GetFilePackSize(i),
+		  folder);
+	  //wprintf(L"Start pos %s\n", (fInfo.StartPosDefined ? L"defined" : L"not defined"));
+  }
+
+  if (db.Folders.Size() == db.Files.Size())
+	  printf("\n\n------------- CAN EXTRACT INTO FILES -------------\n\n");
+
+  //Start reading the actual payload data
+  UInt64 old;
+  RINOK(_stream->Seek(db.ArchiveInfo.StartPositionAfterHeader, STREAM_SEEK_SET, &old));
+
+  for (size_t i = 0; i < db.Folders.Size(); i++)
+  {
+	  CFolder& folder = db.Folders[i];
+	  printf("%i pack streams\n", folder.PackStreams.Size());
+
+	  // todo: remove, should work with multiple streams now.
+	  //assert(folder.PackStreams.Size() == 1);
+	//  continue;
+	  UInt64 folderStartPackPos = db.GetFolderStreamPos(i, 0);
+
+	  UInt64 folderLen = db.GetFolderFullPackSize(i);
+	  int files = folder.UnpackSizes.Size();
+
+	 printf("Folder pos %llu size %llu\n", folderStartPackPos,
+		 folderLen);
+	 for (size_t x = 0; x < folder.PackStreams.Size(); x++)
+		 printf("Pack stream: %u\n", folder.PackStreams[x]);
+
+	 std::wstringstream sstream;
+	 sstream << L"folder_" << i << ".7z";
+	 std::wstring name = sstream.str();
+	
+	wprintf(L"Dumping raw folder %i as %s\n", i, name.c_str());
+
+	 COutFileStream f1;
+	 f1.Create(name.c_str(), true);
+
+	 RINOK(_stream->Seek(folderStartPackPos, STREAM_SEEK_SET, NULL));
+
+	 // this loop is effectively implemented by CopyCoder, see WriteRange
+	 UInt64 processedSize = 0;
+	 while (processedSize < folderLen)
+	 {
+		// printf("processedSize %llu\n", processedSize);
+		 Byte buf[4096];
+		 UInt32 read;
+		 UInt64 to_read = folderLen - processedSize;
+		 RINOK(_stream->Read(buf, to_read > sizeof(buf) ? sizeof(buf) : (UInt32)to_read,
+			 &read));
+
+		 // write whole chunk to disk
+		 UInt32 written = 0;
+		 while (written < read) {
+			 UInt32 this_written;
+			 RINOK(f1.Write(buf + written, read - written, &this_written));
+			 written += this_written;
+		 }
+		 processedSize += read;
+	 }
+	 f1.Close();
+	 
+	 // -------------------------------------------------------------------
+	 // Create a new 7z archive containing only this folder.
+	 // 
+	 CArchiveDatabase newDatabase;
+	 newDatabase.Folders.Add(folder);
+	 newDatabase.NumUnpackStreamsVector.Add(
+		 db.NumUnpackStreamsVector[i]); // number of files (i think)
+	 printf("Unpack streams: %i\n", db.NumUnpackStreamsVector[i]);
+	
+	 
+	 // i think this is right
+	for (size_t packSizes = 0; packSizes < folder.PackStreams.Size(); packSizes++)
+		newDatabase.PackSizes.Add(db.GetFolderPackStreamSize(i, packSizes));
+	
+	 //newDatabase.PackSizes.Add(folderLen); 
+	 newDatabase.PackCRCs.Add(folder.UnpackCRC);
+	 newDatabase.PackCRCsDefined.Add(folder.UnpackCRCDefined);
+
+	 for (size_t x = 0; x < db.Files.Size(); x++) { // should just do this once per db, not folder
+		UInt64 folderIndex = db.FileIndexToFolderIndexMap[x];
+		if (folderIndex == i) {
+			CFileItem file;
+			CFileItem2 finfo;
+			db.GetFile(x, file, finfo);
+			newDatabase.AddFile(file, finfo);
+		}
+	 }
+	// sstream << ".7z";
+	 wprintf(L"Created structured archive %s\n", sstream.str().c_str());
+	 // pretty sure COutArchive frees this stream once associated with it.
+	 COutFileStream* outstream = new COutFileStream; 
+	 outstream->Create(sstream.str().c_str(), true);
+
+	 COutArchive out;
+	 out.Create(outstream, false);
+	 out.SkipPrefixArchiveHeader();
+	RINOK(WriteRange(_stream, out.SeqStream, 
+		 folderStartPackPos, folderLen, NULL));
+		 
+	// need to set this correctly, the main header isn't being compressed
+	// todo: implement properly, see 7zHandler.h (CHandler)
+	 CCompressionMethodMode compressMethod;
+
+	 CHeaderOptions headerOptions;
+	 headerOptions.CompressMainHeader = true;
+
+	 out.WriteDatabase(newDatabase, &compressMethod, headerOptions);
+	 out.Close();
+	 
+  }
+
+  
+
+}}*/
+
+//  return result;
 }
 
 HRESULT CInArchive::ReadDatabase(

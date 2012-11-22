@@ -266,11 +266,11 @@ static Bool IS_SUPPORTED_CODER(const CSzCoderInfo *c)
 
 #define IS_BCJ2(c) ((c)->MethodID == k_BCJ2 && (c)->NumInStreams == 4 && (c)->NumOutStreams == 1)
 
-static SRes CheckSupportedFolder(const CSzFolder *f)
+static SRes CheckSupportedFolder(const CSzFolder *f)// fails for encrypted folders
 {
   if (f->NumCoders < 1 || f->NumCoders > 4)
     return SZ_ERROR_UNSUPPORTED;
-  if (!IS_SUPPORTED_CODER(&f->Coders[0]))
+  if (!IS_SUPPORTED_CODER(&f->Coders[0])) // encrypted fails here
     return SZ_ERROR_UNSUPPORTED;
   if (f->NumCoders == 1)
   {

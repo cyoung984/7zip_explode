@@ -71,9 +71,15 @@ public:
 
   CHandler();
 
+  // Explode the database into one database per folder.
+  void Explode(CObjectVector<CArchiveDatabase>& exploded,
+	  CRecordVector<UInt64>& folderSizes, 
+	  CRecordVector<UInt64>& folderPositions);
+  
 private:
   CMyComPtr<IInStream> _inStream;
   NArchive::N7z::CArchiveDatabaseEx _db;
+  
   #ifndef _NO_CRYPTO
   bool _passwordIsDefined;
   #endif
@@ -96,7 +102,7 @@ private:
       , UInt32 numThreads
       #endif
       );
-
+public: // todo: was private
   HRESULT SetCompressionMethod(
       CCompressionMethodMode &method,
       CCompressionMethodMode &headerMethod);

@@ -53,7 +53,8 @@ STDMETHODIMP CFilterCoder::Code(ISequentialInStream *inStream, ISequentialOutStr
     RINOK(ReadStream(inStream, _buffer + bufferPos, &processedSize));
     
     UInt32 endPos = bufferPos + (UInt32)processedSize;
-
+	
+	// decrypt the data
     bufferPos = Filter->Filter(_buffer, endPos);
     if (bufferPos > endPos)
     {

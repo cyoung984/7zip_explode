@@ -219,7 +219,7 @@ STDMETHODIMP CHandler::Extract(const UInt32 *indices, UInt32 numItems,
       bool passwordIsDefined;
       #endif
 
-      HRESULT result = decoder.Decode(
+      HRESULT result = decoder.Decode( // decode each folder (numerous files)..
           EXTERNAL_CODECS_VARS
           #ifdef _7Z_VOL
           volume.Stream,

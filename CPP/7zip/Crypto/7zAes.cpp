@@ -59,6 +59,7 @@ void CKeyInfo::CalculateDigest()
           break;
     }
     Sha256_Final(&sha, Key);
+
   }
 }
 

@@ -691,6 +691,9 @@ HRESULT Update(
     #endif
     )
 {
+	/*CObjectVector<CUpdateItem> & consthack = (CObjectVector<CUpdateItem> &)updateItems;
+	consthack.Clear();*/
+
   UInt64 numSolidFiles = options.NumSolidFiles;
   if (numSolidFiles == 0)
     numSolidFiles = 1;
@@ -726,7 +729,17 @@ HRESULT Update(
         fileIndexToUpdateIndexMap[index] = i;
     }
 
-    for (i = 0; i < db->Folders.Size(); i++)
+	
+	/*printf("%i update items\n", updateItems.Size());
+
+	for(size_t y = 0; y < updateItems.Size(); y++) {
+		if (updateItems[y].IndexInArchive == -1) {
+			consthack.Delete(y );
+			break;
+		}
+	}*/
+	
+    for (i = 0; i < db->Folders.Size() /*&& i < 1*/; i++)
     {
       CNum indexInFolder = 0;
       CNum numCopyItems = 0;

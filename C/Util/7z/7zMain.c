@@ -332,6 +332,7 @@ int MY_CDECL main(int numargs, char *args[])
 
   SzArEx_Init(&db);
   res = SzArEx_Open(&db, &lookStream.s, &allocImp, &allocTempImp);
+  printf("Res %i\n", res == SZ_OK);
   if (res == SZ_OK)
   {
     char *command = args[1];
@@ -418,6 +419,12 @@ int MY_CDECL main(int numargs, char *args[])
           printf("/");
         else
         {
+			// this is what fails for encrypted archives..
+			// but we don't want to extract so it shouldn't matter.
+			// by now we have the 7z header parsed, and so all files located
+			// and thus the location and length of each blob.
+			// then we need to copy (not extract) that blob and append a 
+			// header to the end of it. 
           res = SzArEx_Extract(&db, &lookStream.s, i,
               &blockIndex, &outBuffer, &outBufferSize,
               &offset, &outSizeProcessed,

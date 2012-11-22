@@ -416,6 +416,7 @@ HRESULT CArchiveLink::Open(
     UInt32 mainSubfile;
     {
       NCOM::CPropVariant prop;
+
       RINOK(arc.Archive->GetArchiveProperty(kpidMainSubfile, &prop));
       if (prop.vt == VT_UI4)
         mainSubfile = prop.ulVal;

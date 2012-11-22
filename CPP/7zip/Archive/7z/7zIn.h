@@ -98,6 +98,7 @@ struct CArchiveDatabaseEx: public CArchiveDatabase
 
 class CInByte2
 {
+	public: // todo: change back to private
   const Byte *_buffer;
   size_t _size;
 public:
@@ -122,9 +123,10 @@ public:
 class CStreamSwitch;
 
 const UInt32 kHeaderSize = 32;
-
+#include <stdio.h> // todo: remove
 class CInArchive
 {
+public: // todo: change back to private
   friend class CStreamSwitch;
 
   CMyComPtr<IInStream> _stream;
@@ -159,7 +161,23 @@ private:
   Byte ReadByte() { return _inByteBack->ReadByte(); }
   UInt64 ReadNumber() { return _inByteBack->ReadNumber(); }
   CNum ReadNum() { return _inByteBack->ReadNum(); }
-  UInt64 ReadID() { return _inByteBack->ReadNumber(); }
+  UInt64 ReadID() { 
+	  static const char* type_names[] = {
+		  "kEnd", "kHeader", "kArchiveProperties", "kAdditionalStreamsInfo", 
+		  "kMainStreamsInfo", "kFilesInfo", "kPackInfo", "kUnPackInfo", "kSubStreamInfo",
+		  "kSize", "kCRC", "kFolder", "kCodersUnPackSize", "kNumUnPackStream",
+		  "kEmptyStream", "kEmptyFile", "kAnti", "kName", "kCTime", "kATime",
+		  "kMTime", "kWinAttributes", "kComment", "kEncodedHeader", "kStartPos",
+		  "kDumy"
+	  };
+
+	  UInt64 id = _inByteBack->ReadNumber();
+
+	  printf("[id] %02X ",id);
+	  printf("%s\n", type_names[id]);
+	  return id;
+	/*  return _inByteBack->ReadNumber();*/
+  }
   UInt32 ReadUInt32() { return _inByteBack->ReadUInt32(); }
   UInt64 ReadUInt64() { return _inByteBack->ReadUInt64(); }
   void SkipData(UInt64 size) { _inByteBack->SkipData(size); }

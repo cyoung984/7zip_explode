@@ -183,9 +183,9 @@ struct CArchiveDatabase
   CRecordVector<UInt64> PackSizes;
   CRecordVector<bool> PackCRCsDefined;
   CRecordVector<UInt32> PackCRCs;
-  CObjectVector<CFolder> Folders;
-  CRecordVector<CNum> NumUnpackStreamsVector;
-  CObjectVector<CFileItem> Files;
+  CObjectVector<CFolder> Folders; // done
+  CRecordVector<CNum> NumUnpackStreamsVector; // done
+  CObjectVector<CFileItem> Files; // done
 
   CUInt64DefVector CTime;
   CUInt64DefVector ATime;

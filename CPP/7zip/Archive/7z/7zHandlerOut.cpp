@@ -187,6 +187,7 @@ static HRESULT GetTime(IArchiveUpdateCallback *updateCallback, int index, bool w
 STDMETHODIMP CHandler::UpdateItems(ISequentialOutStream *outStream, UInt32 numItems,
     IArchiveUpdateCallback *updateCallback)
 {
+	// called to make changes to archive.. look into
   COM_TRY_BEGIN
 
   const CArchiveDatabaseEx *db = 0;
@@ -209,7 +210,7 @@ STDMETHODIMP CHandler::UpdateItems(ISequentialOutStream *outStream, UInt32 numIt
   for (UInt32 i = 0; i < numItems; i++)
   {
     Int32 newData, newProps;
-    UInt32 indexInArchive;
+    UInt32 indexInArchive; // (UInt32)-1 if not in archive -- which is fine (adding it)
     if (!updateCallback)
       return E_FAIL;
     RINOK(updateCallback->GetUpdateItemInfo(i, &newData, &newProps, &indexInArchive));

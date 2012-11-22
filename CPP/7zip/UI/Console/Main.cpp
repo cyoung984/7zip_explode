@@ -1,7 +1,7 @@
 // Main.cpp
 
 #include "StdAfx.h"
-
+//#include <vld.h> // todo: remove (visual leak detector).
 #if defined( _WIN32) && defined( _7ZIP_LARGE_PAGES)
 #include "../../../../C/Alloc.h"
 #endif
@@ -30,6 +30,7 @@
 #include "BenchCon.h"
 #include "ExtractCallbackConsole.h"
 #include "List.h"
+#include "Explode.h"
 #include "OpenCallbackConsole.h"
 #include "UpdateCallbackConsole.h"
 
@@ -75,6 +76,7 @@ static const char *kHelpString =
 //    "    a - with Additional fields\n"
 //    "    t - with all fields\n"
 //    "    f - with Full pathnames\n"
+	"  p: exPlode the archive into its blocks\n"
     "  t: Test integrity of archive\n"
     "  u: Update files to archive\n"
     "  x: eXtract files with full paths\n"
@@ -190,10 +192,9 @@ int Main2(
     ShowCopyrightAndHelp(g_StdOut, true);
     return 0;
   }
-  commandStrings.Delete(0);
+  commandStrings.Delete(0); // executable name
 
   CArchiveCommandLineOptions options;
-
   CArchiveCommandLineParser parser;
 
   parser.Parse1(commandStrings, options);
@@ -376,7 +377,8 @@ int Main2(
       }
     }
   }
-  else if (isExtractGroupCommand || options.Command.CommandType == NCommandType::kList)
+  else if (isExtractGroupCommand || options.Command.CommandType == NCommandType::kList
+	  || options.Command.CommandType == NCommandType::kExplode)
   {
     if (isExtractGroupCommand)
     {
@@ -388,6 +390,7 @@ int Main2(
       #ifndef _NO_CRYPTO
       ecs->PasswordIsDefined = options.PasswordEnabled;
       ecs->Password = options.Password;
+	  stdStream << "using password " << ecs->Password << "\n";
       #endif
 
       ecs->Init();
@@ -417,8 +420,8 @@ int Main2(
       HRESULT result = DecompressArchives(
           codecs,
           formatIndices,
-          options.ArchivePathsSorted,
-          options.ArchivePathsFullSorted,
+          options.ArchivePathsSorted, // relative to working directory
+          options.ArchivePathsFullSorted, // relative to root (ie drive)
           options.WildcardCensor.Pairs.Front().Head,
           eo, &openCallback, ecs, errorMessage, stat);
       if (!errorMessage.IsEmpty())
@@ -461,7 +464,7 @@ int Main2(
         stdStream << "CRC: " << s << endl;
       }
     }
-    else
+    else if (options.Command.CommandType == NCommandType::kList)
     {
       UInt64 numErrors = 0;
       HRESULT result = ListArchives(
@@ -486,6 +489,24 @@ int Main2(
       if (result != S_OK)
         throw CSystemException(result);
     }
+	else if (options.Command.CommandType == NCommandType::kExplode)
+	{
+		UInt64 numErrors = 0;
+		HRESULT result = ExplodeArchives(
+			codecs, 
+			formatIndices,
+			options.StdInMode,
+			options.ArchivePathsSorted,
+			options.ArchivePathsFullSorted,
+			numErrors);
+		if (numErrors > 0) 
+		{
+			g_StdOut << endl << "Errors: " << numErrors << endl;
+			return NExitCode::kFatalError;
+		}
+		if (result != S_OK)
+			throw CSystemException(result);
+	}
   }
   else if (options.Command.IsFromUpdateGroup())
   {
