@@ -8,3 +8,6 @@ Modified version of 7zip which supports archive exploding, that is, creating a n
 Use command line p for exPloding.
 
 Creates an archive called archivename.7z_folderx.7z for each folder, ie hello.7z_folder0.7z. Doesn't create any directories for them yet though.
+
+To build:
+CPP/7zip/Bundles/Alone and build the solution (made with Visual Studio 2010)
