@@ -924,7 +924,7 @@ void CArchiveCommandLineParser::Parse2(CArchiveCommandLineOptions &options)
         options.ArchivePathsFullSorted);
     }
     
-    if (isExtractGroupCommand)
+    if (isExtractGroupCommand || options.Command.CommandType == NCommandType::kExplode)
     {
       SetMethodOptions(parser, options.ExtractProperties);
       if (options.StdOutMode && options.IsStdOutTerminal && options.IsStdErrTerminal)

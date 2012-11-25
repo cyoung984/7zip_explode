@@ -64,9 +64,10 @@ void CHandler::Explode(CObjectVector<CArchiveDatabase>& exploded,
 		folderPositions.Add(_db.GetFolderStreamPos(folderIndex, 0));
 
 		CArchiveDatabase newDatabase;
-		newDatabase.Folders.Add(folder);
+		newDatabase.Folders.Add(folder); // not copy constructed
+
 		newDatabase.NumUnpackStreamsVector.Add(
-			_db.NumUnpackStreamsVector[folderIndex]); // number of files (i think)
+			_db.NumUnpackStreamsVector[folderIndex]);
 
 		// i think this is right
 		for (int packSizes = 0; packSizes < folder.PackStreams.Size(); packSizes++)
@@ -85,8 +86,9 @@ void CHandler::Explode(CObjectVector<CArchiveDatabase>& exploded,
 				newDatabase.AddFile(file, finfo);
 			}
 		}
-		exploded.Add(newDatabase);
+		exploded.Add(newDatabase); // copy constructed
 	}
+
 }
 #ifdef _SFX
 

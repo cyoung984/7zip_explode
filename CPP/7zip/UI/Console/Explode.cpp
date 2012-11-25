@@ -37,7 +37,7 @@ static HRESULT WriteRange(IInStream *inStream, ISequentialOutStream *outStream,
 }
 
 // Strip the file name from the full path (if present) and append trailing /
-UString StripFile(UString& path) 
+UString StripFile(UString& path, bool remove=true) 
 {
 	UString file;
 	// remove file name
@@ -46,10 +46,10 @@ UString StripFile(UString& path)
 		int namelen = path.Length() - last;
 
 		file = path.Right(namelen - 1);		
-		path.Delete(last + 1, namelen - 1);
+		if (remove)	path.Delete(last + 1, namelen - 1);
 	} else {// file not directory
 		file = path;
-		path.Empty();
+		if (remove)	path.Empty();
 	}
 	return file;
 }
@@ -60,6 +60,7 @@ UString StripFile(UString& path)
 HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 	bool stdInMode,
 	UStringVector &arcPaths, UStringVector &arcPathsFull,
+	const UString& outputPath,
 	UInt64 &numErrors)
 {
 	int numArcs = arcPaths.Size();
@@ -67,9 +68,11 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 	{
 		const UString &archivePath = arcPaths[i];
 		
-		UString outputPath = arcPaths[i];
+		/*UString outputPath = arcPaths[i];
 		outputPath.Replace(L'\\', L'/'); // linux and windows consistent
 		const UString archiveName = StripFile(outputPath);
+		outputPath.Empty();*/
+		const UString archiveName = StripFile((const UString)archivePath, false);
 
 		g_StdOut << "Outputting into : " << outputPath << endl;
 
@@ -169,7 +172,7 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 		CObjectVector<CArchiveDatabase> exploded;
 		CRecordVector<UInt64> folderSizes, folderPositions;
 		szHandler->Explode(exploded, folderSizes, folderPositions);
-
+	
 		if (exploded.Size() == 0) {
 			SHOW_ERROR("Empty archive!");
 			continue;
@@ -224,9 +227,6 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 			RINOK(WriteRange(inStream, out.SeqStream, 
 			folderStartPackPos, folderLen, NULL));
 
-			// need to set this correctly, the main header isn't being compressed
-			// todo: implement properly, see 7zHandler.h (CHandler)
-			// seems to be fixed now, but broke encapsulation on 7zHandler
 			CCompressionMethodMode method, headerMethod;
 			szHandler->SetCompressionMethod(method, headerMethod);
 
