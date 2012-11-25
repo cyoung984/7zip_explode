@@ -177,7 +177,7 @@ struct CFileItem2
   bool StartPosDefined;
   bool IsAnti;
 };
-#include <stdio.h>
+
 struct CArchiveDatabase
 {
   CRecordVector<UInt64> PackSizes;
@@ -193,11 +193,6 @@ struct CArchiveDatabase
   CUInt64DefVector StartPos;
   CRecordVector<bool> IsAnti;
 
-  //CArchiveDatabase() {}
-  /*CArchiveDatabase(const CArchiveDatabase& other)
-  {
-	  printf("no-op Copy\n");
-  }*/
   void Clear()
   {
     PackSizes.Clear();
