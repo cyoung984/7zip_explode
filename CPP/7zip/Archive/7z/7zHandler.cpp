@@ -78,7 +78,7 @@ private:
 		// if (indx == -1) {*found = 0; return false;} 
 		for (size_t x = 0; x < leaves.Size(); x++) {
 			if (!leaves[x]->key.Compare(dir)){
-				*found = &*leaves[x];
+				*found = leaves[x];
 				return true;
 			}
 		}
@@ -166,7 +166,8 @@ public:
 		for (int i = 0; i < depth; i++)
 			prefix += L" ";
 
-		wprintf(L"%s%s\n", prefix.GetBuffer(), key.GetBuffer());
+		wprintf(L"%s%s [%i blocks]\n", prefix.GetBuffer(), key.GetBuffer(),
+			blocks.Size());
 
 		for (size_t x = 0; x < leaves.Size(); x++)
 			leaves[x]->PreorderPrint(depth+1);
@@ -184,6 +185,7 @@ void CHandler::Explode(CObjectVector<CArchiveDatabase>& exploded,
 	CRecordVector<UInt64>& folderSizes, 
 	CRecordVector<UInt64>& folderPositions)
 {
+	wprintf(L"Archive has %i blocks\n", _db.Folders.Size());
 	CSzTree archiveStructure(L"/");
 	for (int x = 0; x < _db.Files.Size(); x++)
 	{
