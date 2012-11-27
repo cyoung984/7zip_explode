@@ -52,11 +52,164 @@ STDMETHODIMP CHandler::GetNumberOfItems(UInt32 *numItems)
   return S_OK;
 }
 
+// todo: move elsewhere
+// 
+
+class CSzTree /*: public CSzTree*/
+{
+private:
+	CRecordVector<CFolder*> blocks; // not owned
+	CRecordVector<CSzTree*> leaves; // owned by this obj
+	UString key;
+
+	bool UpdateIfEmpty(const UString& key)
+	{
+		if (IsEmpty()) {
+			this->key = key;
+			return true;
+		}
+		return false;
+	}
+
+	// Checks if the directory exists AT THIS LEVEL only.
+	bool FindDirectory(const UString& dir, CSzTree** found)
+	{
+		// int indx = leaves.FindInSorted(tofind);
+		// if (indx == -1) {*found = 0; return false;} 
+		for (size_t x = 0; x < leaves.Size(); x++) {
+			if (!leaves[x]->key.Compare(dir)){
+				*found = &*leaves[x];
+				return true;
+			}
+		}
+		return false;
+	}
+
+	CSzTree& AddDirCheckExist(const UString& key)
+	{
+		CSzTree* found;
+		if (FindDirectory(key, &found)) return *found;
+		leaves.Add(new CSzTree(key));
+		return *leaves.Back();
+	}
+
+	CSzTree& AddSimpleDirectory(const UString& key)
+	{
+		if (UpdateIfEmpty(key)) return *this;
+		return AddDirCheckExist(key);
+	}
+
+protected:
+
+public:
+	CSzTree(const UString& key) : key(key) {}
+
+	virtual ~CSzTree() {
+		for (int i = 0; i < leaves.Size(); i++)
+			delete leaves[i];
+		leaves.Clear();
+	}
+
+	bool IsEmpty() const 
+	{
+		return key.Length() == 0;
+	}
+
+	// Add a directory which may contain other directories, which should also 
+	// get created.
+	CSzTree& AddDirectory(const UString& path)
+	{
+		size_t slashpos = 0;
+		CSzTree* leaf = this;
+		bool done = false;
+		while (!done)
+		{
+			size_t nextpos = path.Find('/', slashpos);
+			if (nextpos == -1) {
+				nextpos = path.Length();
+				done = true;				
+			}
+			if (nextpos == slashpos) break;
+			UString dir = path.Mid(slashpos, nextpos-slashpos);
+			leaf = &leaf->AddSimpleDirectory(dir);
+			//leaf = &leaf->AddDirectory(dir);
+			slashpos = nextpos + 1;
+		}
+		return *this;
+	}
+
+	// Find a directory relative to 'this'
+	bool FindRelativeDirectory(const UString& relative_dir, CSzTree** out)
+	{
+		size_t slashpos = 0;
+		CSzTree* leaf = this;
+		bool done = false;
+		while (!done)
+		{
+			size_t nextpos = relative_dir.Find('/', slashpos);
+			if (nextpos == -1) {
+				nextpos = relative_dir.Length();
+				done = true;				
+			}
+			if (nextpos == slashpos) break;
+			UString dir = relative_dir.Mid(slashpos, nextpos-slashpos);
+			if (!leaf->FindDirectory(dir, &leaf)) return false;
+
+			slashpos = nextpos + 1;
+		}
+		return true;
+	}
+
+	void PreorderPrint(int depth = 0)
+	{
+		UString prefix;
+		for (int i = 0; i < depth; i++)
+			prefix += L" ";
+
+		wprintf(L"%s%s\n", prefix.GetBuffer(), key.GetBuffer());
+
+		for (size_t x = 0; x < leaves.Size(); x++)
+			leaves[x]->PreorderPrint(depth+1);
+	}
+
+	// the folder should out live the tree
+	void AddBlock(CFolder* folder)
+	{
+		blocks.AddToUniqueSorted(folder);
+	}
+};
+
 // Explode the database into one database per folder.
 void CHandler::Explode(CObjectVector<CArchiveDatabase>& exploded,
 	CRecordVector<UInt64>& folderSizes, 
 	CRecordVector<UInt64>& folderPositions)
 {
+	CSzTree archiveStructure(L"/");
+	for (int x = 0; x < _db.Files.Size(); x++)
+	{
+		CFileItem file = _db.Files[x];		
+		UString dir = L"/";
+
+		if (file.IsDir) dir = file.Name;
+		else {
+			int last = file.Name.ReverseFind(L'/');
+			if (last != -1) dir = file.Name.Left(last);	
+		}
+
+		wprintf(L"Adding directory %s\n", dir.GetBuffer());
+		 
+		CSzTree& structuredDir = archiveStructure.AddDirectory(dir);
+		CFolder* folder = &_db.Folders[_db.FileIndexToFolderIndexMap[x]];
+		structuredDir.AddBlock(folder);
+	}
+	archiveStructure.PreorderPrint();
+	// all files in a block are in the same directory level
+	// /folder/a/b/c/datahere
+	// so to find a block's level, find a file in that block and get its
+	// level.
+	// If the level exceeds a depth then all sub folders are put into that
+	// archive.
+	// So, it'd make sense to parse the structure into a directory tree
 	for (int folderIndex = 0; folderIndex < _db.Folders.Size(); folderIndex++)
 	{
 		CFolder& folder = _db.Folders[folderIndex];
@@ -88,7 +241,6 @@ void CHandler::Explode(CObjectVector<CArchiveDatabase>& exploded,
 		}
 		exploded.Add(newDatabase); // copy constructed
 	}
-
 }
 #ifdef _SFX
 

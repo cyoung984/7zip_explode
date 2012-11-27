@@ -13,8 +13,11 @@
 #include "../../Common/LimitedStreams.h"
 #include "../../Compress/CopyCoder.h"
 #include "../../../Windows/FileDir.h"
-
-#include <assert.h>
+#ifdef ENV_UNIX
+#include <unistd.h>
+#include <errno.h>
+#include "../../../Common/UTFConvert.h"
+#endif
 
 using namespace NWindows;
 
@@ -72,7 +75,7 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 		outputPath.Replace(L'\\', L'/'); // linux and windows consistent
 		const UString archiveName = StripFile(outputPath);
 		outputPath.Empty();*/
-		const UString archiveName = StripFile((const UString)archivePath, false);
+		const UString archiveName = StripFile((UString&)archivePath, false);
 
 		g_StdOut << "Outputting into : " << outputPath << endl;
 
@@ -235,6 +238,31 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 
 			out.WriteDatabase(exploded[x], &headerMethod, headerOptions);
 			out.Close();
+
+#ifdef ENV_UNIX
+			// Create a symlink for each file in the folder.
+			// This makes it seem as though each file is individually accessible.
+			for (int fileIndex = 0; fileIndex < exploded[x].Files.Size(); fileIndex++) {
+				AString oldfile, newfile;
+				UString woldfile = sstream.str().c_str();
+				UString wnewfile = outputPath + relativeFilePath + exploded[x].Files[fileIndex].Name + L".7z";
+				ConvertUnicodeToUTF8(woldfile, oldfile);
+				ConvertUnicodeToUTF8(wnewfile, newfile);
+				const char* link_to = oldfile.GetBuffer();
+				const char* link_name = newfile.GetBuffer();
+				unlink(link_name);// should ask user
+				//g_StdOut << "Creating symlink to '" << link_to << "' called '" << link_name << "'" << endl;
+				int status = symlink(link_to, link_name);
+				if (status == -1) {
+					AString error = "Couldn't create symlink for '";
+					error += newfile;
+					error += "'";
+					SHOW_ERROR(error);
+					g_StdOut << "Error: " << errno << endl;
+					
+				}
+			}
+#endif
 		}		
 
 		archiveLink.Close(); // not needed but oh well
