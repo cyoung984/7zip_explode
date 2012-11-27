@@ -90,7 +90,7 @@ public:
 class CSzTree /*: public CSzTree*/
 {
 private:
-	CRecordVector<CFolder*> blocks; // not owned
+	CRecordVector<unsigned int> blocks;
 	CRecordVector<CSzTree*> leaves; // owned by this obj
 	UString key;
 
@@ -125,6 +125,8 @@ private:
 		return *leaves.Back();
 	}
 
+	// Add a directory at the current level. If one already exists
+	// it is returned.
 	CSzTree& AddSimpleDirectory(const UString& key)
 	{
 		if (UpdateIfEmpty(key)) return *this;
@@ -167,10 +169,10 @@ public:
 		PathParser p(&relative_dir);
 		CSzTree* leaf = this;
 		UString dir;
-		while (p.GetNextDirectory(dir))
-		{
+		while (p.GetNextDirectory(dir)) {
 			if (!leaf->FindDirectory(dir, &leaf)) return false;
 		}
+		*out = leaf;
 		return true;
 	}
 
@@ -187,12 +189,12 @@ public:
 			leaves[x]->PreorderPrint(depth+1);
 	}
 
-	// the folder should out live the tree
-	void AddBlock(CFolder* folder)
+	void AddBlock(unsigned int folderIndex)
 	{
-		blocks.AddToUniqueSorted(folder);
+		blocks.AddToUniqueSorted(folderIndex);
 	}
 };
+
 
 // Explode the database into one database per folder.
 void CHandler::Explode(CObjectVector<CArchiveDatabase>& exploded,
@@ -207,20 +209,19 @@ void CHandler::Explode(CObjectVector<CArchiveDatabase>& exploded,
 	{
 		CFileItem file = _db.Files[x];		
 		UString dir = L"/";
-
+		// todo: should use function defined in Explode.cpp, will do when refactoring
 		if (file.IsDir) dir = file.Name;
 		else {
 			int last = file.Name.ReverseFind(L'/');
 			if (last != -1) dir = file.Name.Left(last);	
 		}
-
-		//wprintf(L"Adding directory %s\n", dir.GetBuffer());
 		 
 		CSzTree& structuredDir = archiveStructure.AddDirectory(dir);
-		CFolder* folder = &_db.Folders[_db.FileIndexToFolderIndexMap[x]];
-		if (!file.IsDir) structuredDir.AddBlock(folder);
+		unsigned int folderIndex = _db.FileIndexToFolderIndexMap[x];
+		if (!file.IsDir) structuredDir.AddBlock(folderIndex);
 	}
 	archiveStructure.PreorderPrint();
+	return;
 	// all files in a block are in the same directory level
 	// /folder/a/b/c/datahere
 	// so to find a block's level, find a file in that block and get its
