@@ -39,22 +39,36 @@ static HRESULT WriteRange(IInStream *inStream, ISequentialOutStream *outStream,
 	return (copyCoderSpec->TotalSize == size ? S_OK : E_FAIL);
 }
 
-// Strip the file name from the full path (if present) and append trailing /
-UString StripFile(UString& path, bool remove=true) 
+// Strip the file name from the full path, keeping the trailing /
+void StripFile(UString& path) 
 {
-	UString file;
 	// remove file name
 	int last = path.ReverseFind(L'/');
 	if (last != -1) {
 		int namelen = path.Length() - last;
-
-		file = path.Right(namelen - 1);		
-		if (remove)	path.Delete(last + 1, namelen - 1);
+		path.Delete(last + 1, namelen - 1);
 	} else {// file not directory
-		file = path;
-		if (remove)	path.Empty();
+		path.Empty();
 	}
+}
+
+// Get the file name from a path
+UString GetFileFromPath(const UString& path)
+{
+	UString file;
+	int last = path.ReverseFind(L'/');
+	if (last != -1) {
+		int namelen = path.Length() - last;
+		file = path.Right(namelen - 1);	
+	} else file = path;
 	return file;
+}
+
+// Make sure the path is terminated with only a single /
+void FixPathFormat(UString& path)
+{
+	while (path.Back() == L'/') path.DeleteBack();
+	path += L'/';
 }
 
 
@@ -63,19 +77,22 @@ UString StripFile(UString& path, bool remove=true)
 HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 	bool stdInMode,
 	UStringVector &arcPaths, UStringVector &arcPathsFull,
-	const UString& outputPath,
+	UString& outputPath,
 	UInt64 &numErrors)
 {
 	int numArcs = arcPaths.Size();
 	for (int i = 0; i < numArcs; i++)
 	{
-		const UString &archivePath = arcPaths[i];
+		UString archivePath = arcPaths[i];
 		
 		/*UString outputPath = arcPaths[i];
 		outputPath.Replace(L'\\', L'/'); // linux and windows consistent
 		const UString archiveName = StripFile(outputPath);
 		outputPath.Empty();*/
-		const UString archiveName = StripFile((UString&)archivePath, false);
+		archivePath.Replace(L'\\', L'/'); // linux, windows and archive consistent
+		outputPath.Replace(L'\\', L'/'); 
+		FixPathFormat(outputPath);
+		const UString archiveName = GetFileFromPath(archivePath);
 
 		g_StdOut << "Outputting into : " << outputPath << endl;
 
@@ -193,7 +210,8 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 			if (exploded[x].Files.Size() > 0) {
 				relativeFilePath = exploded[x].Files[0].Name;
 				if (!exploded[x].Files[0].IsDir) {
-					fileName = StripFile(relativeFilePath);
+					fileName = GetFileFromPath(relativeFilePath);
+					StripFile(relativeFilePath);
 				}
 			}
 
@@ -208,7 +226,7 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 			}
 
 			std::wstringstream sstream;
-			sstream << outputPath.GetBuffer() << relativeFilePath.GetBuffer();
+			sstream << folderOutPath.GetBuffer();
 			
 			if (exploded[x].Files.Size() == 1) // can use file names
 				sstream << fileName.GetBuffer();
