@@ -116,7 +116,9 @@ public:
 	}
 
 	// Add a directory which may contain other directories, which should also 
-	// get created.
+	// get created. 
+	// The value returned is the deepest nested directory created (ie where
+	// a file in this path should go).
 	CSzTree& AddDirectory(const UString& path)
 	{
 		size_t slashpos = 0;
@@ -135,7 +137,7 @@ public:
 			//leaf = &leaf->AddDirectory(dir);
 			slashpos = nextpos + 1;
 		}
-		return *this;
+		return *leaf;
 	}
 
 	// Find a directory relative to 'this'
@@ -198,11 +200,11 @@ void CHandler::Explode(CObjectVector<CArchiveDatabase>& exploded,
 			if (last != -1) dir = file.Name.Left(last);	
 		}
 
-		wprintf(L"Adding directory %s\n", dir.GetBuffer());
+		//wprintf(L"Adding directory %s\n", dir.GetBuffer());
 		 
 		CSzTree& structuredDir = archiveStructure.AddDirectory(dir);
 		CFolder* folder = &_db.Folders[_db.FileIndexToFolderIndexMap[x]];
-		structuredDir.AddBlock(folder);
+		if (!file.IsDir) structuredDir.AddBlock(folder);
 	}
 	archiveStructure.PreorderPrint();
 	// all files in a block are in the same directory level
