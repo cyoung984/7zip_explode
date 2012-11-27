@@ -55,6 +55,38 @@ STDMETHODIMP CHandler::GetNumberOfItems(UInt32 *numItems)
 // todo: move elsewhere
 // 
 
+class PathParser
+{
+private:
+	const UString* path;
+	int slashpos, nextpos;
+
+public:
+	// path should remain valid for duration of this objects lifetime
+	PathParser(const UString* path) : path(path), slashpos(0), nextpos(-1)
+	{
+	}
+
+	// Find the next directory in the path (starting from the root)
+	// Returns false if there is no directory left.
+	bool GetNextDirectory(UString& dir)
+	{
+		if (slashpos == -1) return false;
+
+		bool has_next = true;
+		nextpos = path->Find('/', slashpos);
+		if (nextpos == -1) {
+			nextpos = path->Length();
+			has_next = false;				
+		} 
+		if (nextpos == slashpos) return false;
+		dir = path->Mid(slashpos, nextpos-slashpos);
+
+		slashpos = has_next ? nextpos + 1 : -1;
+		return true;
+	}
+};
+
 class CSzTree /*: public CSzTree*/
 {
 private:
@@ -121,43 +153,23 @@ public:
 	// a file in this path should go).
 	CSzTree& AddDirectory(const UString& path)
 	{
-		size_t slashpos = 0;
+		PathParser p(&path);
 		CSzTree* leaf = this;
-		bool done = false;
-		while (!done)
-		{
-			size_t nextpos = path.Find('/', slashpos);
-			if (nextpos == -1) {
-				nextpos = path.Length();
-				done = true;				
-			}
-			if (nextpos == slashpos) break;
-			UString dir = path.Mid(slashpos, nextpos-slashpos);
+		UString dir;
+		while (p.GetNextDirectory(dir))
 			leaf = &leaf->AddSimpleDirectory(dir);
-			//leaf = &leaf->AddDirectory(dir);
-			slashpos = nextpos + 1;
-		}
 		return *leaf;
 	}
 
 	// Find a directory relative to 'this'
 	bool FindRelativeDirectory(const UString& relative_dir, CSzTree** out)
 	{
-		size_t slashpos = 0;
+		PathParser p(&relative_dir);
 		CSzTree* leaf = this;
-		bool done = false;
-		while (!done)
+		UString dir;
+		while (p.GetNextDirectory(dir))
 		{
-			size_t nextpos = relative_dir.Find('/', slashpos);
-			if (nextpos == -1) {
-				nextpos = relative_dir.Length();
-				done = true;				
-			}
-			if (nextpos == slashpos) break;
-			UString dir = relative_dir.Mid(slashpos, nextpos-slashpos);
 			if (!leaf->FindDirectory(dir, &leaf)) return false;
-
-			slashpos = nextpos + 1;
 		}
 		return true;
 	}
@@ -188,6 +200,8 @@ void CHandler::Explode(CObjectVector<CArchiveDatabase>& exploded,
 	CRecordVector<UInt64>& folderPositions)
 {
 	wprintf(L"Archive has %i blocks\n", _db.Folders.Size());
+	// Parse the archive into its directory tree and associate folders (blocks)
+	// with the correct level.
 	CSzTree archiveStructure(L"/");
 	for (int x = 0; x < _db.Files.Size(); x++)
 	{
