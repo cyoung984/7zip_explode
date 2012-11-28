@@ -200,6 +200,8 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 		
 		// Save each folder as a new 7z archive
 		for (int x = 0; x < exploded.Size(); x++) {
+			// fix this bit, where it gets the folder sizes and positions
+			// from.
 			UInt64 folderLen = folderSizes[x];
 			UInt64 folderStartPackPos = folderPositions[x];
 			

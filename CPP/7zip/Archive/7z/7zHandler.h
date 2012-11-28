@@ -17,7 +17,8 @@
 
 namespace NArchive {
 namespace N7z {
-
+	// todo: refactor
+	class CSzTree;
 #ifndef __7Z_SET_PROPERTIES
 
 #ifdef EXTRACT_ONLY
@@ -75,6 +76,16 @@ public:
   void Explode(CObjectVector<CArchiveDatabase>& exploded,
 	  CRecordVector<UInt64>& folderSizes, 
 	  CRecordVector<UInt64>& folderPositions);
+
+private:
+	
+	void Explode(CSzTree* tree, CObjectVector<CArchiveDatabase>& exploded, 
+		int maxdepth, 
+		CArchiveDatabase* outArchive = NULL, int curDepth = 0);
+
+	void AddFolderToDatabase(CArchiveDatabaseEx& input, int folderIndex,
+		CArchiveDatabase& newDatabase);
+	void AddBlocksToDatabase(CArchiveDatabase& outArchive, CSzTree* tree);
   
 private:
   CMyComPtr<IInStream> _inStream;
