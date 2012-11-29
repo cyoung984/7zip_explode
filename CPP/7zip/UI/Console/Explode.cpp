@@ -173,9 +173,7 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 			continue;
 		}
 
-		// should probably change this and add explode to IInArchive
-		// and implement there, but then I need to add dummy handlers
-		// for other formats because only 7z is supported
+		// Only 7z is supported, and it's been checked
 		using namespace NArchive::N7z;
 		IInArchive* inArc = archiveLink.GetArchive();
 		CHandler* szHandler = (CHandler*)inArc;
@@ -189,29 +187,39 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 		}	
 
 		// Explode the archive into each folder
-		CObjectVector<CArchiveDatabase> exploded;
-		CRecordVector<UInt64> folderSizes, folderPositions;
-		szHandler->Explode(exploded, folderSizes, folderPositions);
+		CObjectVector<szExplodeData> exploded;
+		szHandler->Explode(exploded);
 	
 		if (exploded.Size() == 0) {
 			SHOW_ERROR("Empty archive!");
 			continue;
 		}
+
+		// should make a struct that gets passed to Explode.. 
+		// something like
+		/*
+		 * struct a {
+		 *	CArchiveDatabase newDatabase;
+		 *	CRecordVector<UInt64> folderSizes, folderPositions	
+		 * };
+		 * CObjectVector<a> exploded;
+		 * szHandler->Explode(exploded);
+		 */
 		
 		// Save each folder as a new 7z archive
-		for (int x = 0; x < exploded.Size(); x++) {
-			// fix this bit, where it gets the folder sizes and positions
-			// from.
-			UInt64 folderLen = folderSizes[x];
-			UInt64 folderStartPackPos = folderPositions[x];
-			
+		for (int x = 0; x < exploded.Size(); x++) {		
 			UString relativeFilePath; // relative to archive
 			UString fileName;
+			CArchiveDatabase& newDatabase = exploded[x].newDatabase;
+			szExplodeData& explodeData = exploded[x];
 
 			// each exploded archive will only have a single folder.
-			if (exploded[x].Files.Size() > 0) {
-				relativeFilePath = exploded[x].Files[0].Name;
-				if (!exploded[x].Files[0].IsDir) {
+			// no longer true. need to make sure the selected file
+			// is the highest in the dir tree. could make 7zhandler
+			// give us this info i guess.
+			if (newDatabase.Files.Size() > 0) {
+				relativeFilePath = newDatabase.Files[0].Name;
+				if (!newDatabase.Files[0].IsDir) {
 					fileName = GetFileFromPath(relativeFilePath);
 					StripFile(relativeFilePath);
 				}
@@ -230,7 +238,7 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 			std::wstringstream sstream;
 			sstream << folderOutPath.GetBuffer();
 			
-			if (exploded[x].Files.Size() == 1) // can use file names
+			if (newDatabase.Files.Size() == 1) // can use file names
 				sstream << fileName.GetBuffer();
 			else // use folder as name 
 				sstream << archiveName.GetBuffer() << L"_folder_" << x;
@@ -246,9 +254,16 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 			out.Create(outstream, false);
 			out.SkipPrefixArchiveHeader();
 	
-			// write actual data
-			RINOK(WriteRange(inStream, out.SeqStream, 
-			folderStartPackPos, folderLen, NULL));
+			for (int folderIndex = 0; folderIndex < newDatabase.Folders.Size(); 
+				folderIndex++)
+			{
+				UInt64 folderLen = explodeData.folderSizes[folderIndex];
+				UInt64 folderStartPackPos = explodeData.folderPositions[folderIndex];
+
+				// write actual data
+				RINOK(WriteRange(inStream, out.SeqStream, 
+					folderStartPackPos, folderLen, NULL));
+			}			
 
 			CCompressionMethodMode method, headerMethod;
 			szHandler->SetCompressionMethod(method, headerMethod);
@@ -256,7 +271,7 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 			CHeaderOptions headerOptions;
 			headerOptions.CompressMainHeader = true;
 
-			out.WriteDatabase(exploded[x], &headerMethod, headerOptions);
+			out.WriteDatabase(newDatabase, &headerMethod, headerOptions);
 			out.Close();
 
 #ifdef ENV_UNIX

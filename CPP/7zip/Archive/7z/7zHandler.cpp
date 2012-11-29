@@ -213,26 +213,26 @@ public:
 	}
 };
 
-void CHandler::AddBlocksToDatabase(CArchiveDatabase& outArchive, CSzTree* tree)
+void CHandler::AddBlocksToDatabase(szExplodeData& out, CSzTree* tree)
 {
 	int blockIndex = 0;
 	unsigned int block = 0;
 	while ((block = tree->GetBlock(blockIndex++)) != -1) {
-		AddFolderToDatabase(_db, block, outArchive);
+		AddFolderToDatabase(_db, block, out);
 	}
 }
 
-void CHandler::Explode(CSzTree* tree, CObjectVector<CArchiveDatabase>& exploded, 
-	int maxdepth, CArchiveDatabase* outArchive, int curDepth)
+void CHandler::Explode(CSzTree* tree, CObjectVector<szExplodeData>& exploded, 
+	int maxdepth, szExplodeData* szExplode, int curDepth)
 {
 	if (curDepth < maxdepth) {
 		// explode tree into an archive per block then explode its children
 		int blockIndex = 0;
 		unsigned int block = 0;
 		while ((block = tree->GetBlock(blockIndex++)) != -1) {
-			CArchiveDatabase newDatabase;
-			AddFolderToDatabase(_db, block, newDatabase);
-			exploded.Add(newDatabase);
+			szExplodeData f;
+			AddFolderToDatabase(_db, block, f);
+			exploded.Add(f);
 		}
 		
 		int i = 0;
@@ -243,42 +243,42 @@ void CHandler::Explode(CSzTree* tree, CObjectVector<CArchiveDatabase>& exploded,
 
 	} else {
 		// put all blocks in tree, and all of its children into a single archive
-		CArchiveDatabase newDatabase;
+		szExplodeData explode;
 		bool top_level = false;
-		if (!outArchive) {
-			outArchive = &newDatabase;
+		if (!szExplode) {
+			szExplode = &explode;
 			top_level = true;
 		}
-		AddBlocksToDatabase(*outArchive, tree);
+		AddBlocksToDatabase(*szExplode, tree);
 
 		int i = 0;
 		CSzTree* subtree;
 		while (tree->GetLeaf(i++, &subtree)) {
-			Explode(subtree, exploded, maxdepth, outArchive, curDepth + 1);
+			Explode(subtree, exploded, maxdepth, szExplode, curDepth + 1);
 		}
-		if (top_level) exploded.Add(*outArchive);
+		if (top_level) exploded.Add(*szExplode);
 	}
 }
 
 void CHandler::AddFolderToDatabase(CArchiveDatabaseEx& input, int folderIndex,
-						 CArchiveDatabase& newDatabase)
+						 szExplodeData& out)
 {
 	CFolder& folder = input.Folders[folderIndex];
-	//folderSizes.Add(_db.GetFolderFullPackSize(folderIndex));
-	//folderPositions.Add(_db.GetFolderStreamPos(folderIndex, 0));
+	out.folderSizes.Add(_db.GetFolderFullPackSize(folderIndex));
+	out.folderPositions.Add(_db.GetFolderStreamPos(folderIndex, 0));
 
-	newDatabase.Folders.Add(folder);
+	out.newDatabase.Folders.Add(folder);
 
-	newDatabase.NumUnpackStreamsVector.Add(
+	out.newDatabase.NumUnpackStreamsVector.Add(
 		input.NumUnpackStreamsVector[folderIndex]);
 
 	// i think this is right
 	for (int packSizes = 0; packSizes < folder.PackStreams.Size(); packSizes++)
-		newDatabase.PackSizes.Add(input.GetFolderPackStreamSize(folderIndex, packSizes));
+		out.newDatabase.PackSizes.Add(input.GetFolderPackStreamSize(folderIndex, packSizes));
 
 	//newDatabase.PackSizes.Add(folderLen); 
-	newDatabase.PackCRCs.Add(folder.UnpackCRC);
-	newDatabase.PackCRCsDefined.Add(folder.UnpackCRCDefined);
+	out.newDatabase.PackCRCs.Add(folder.UnpackCRC);
+	out.newDatabase.PackCRCsDefined.Add(folder.UnpackCRCDefined);
 
 	for (int x = 0; x < input.Files.Size(); x++) { // should just do this once per db, not folder
 		UInt64 _folderIndex = input.FileIndexToFolderIndexMap[x];
@@ -286,15 +286,13 @@ void CHandler::AddFolderToDatabase(CArchiveDatabaseEx& input, int folderIndex,
 			CFileItem file;
 			CFileItem2 finfo;
 			input.GetFile(x, file, finfo);
-			newDatabase.AddFile(file, finfo);
+			out.newDatabase.AddFile(file, finfo);
 		}
 	}
 }
 
 // Explode the database into one database per folder.
-void CHandler::Explode(CObjectVector<CArchiveDatabase>& exploded,
-	CRecordVector<UInt64>& folderSizes, 
-	CRecordVector<UInt64>& folderPositions)
+void CHandler::Explode(CObjectVector<szExplodeData>& exploded)
 {
 	wprintf(L"Archive has %i blocks\n", _db.Folders.Size());
 	// Parse the archive into its directory tree and associate folders (blocks)

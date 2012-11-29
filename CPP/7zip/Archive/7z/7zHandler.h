@@ -17,8 +17,6 @@
 
 namespace NArchive {
 namespace N7z {
-	// todo: refactor
-	class CSzTree;
 #ifndef __7Z_SET_PROPERTIES
 
 #ifdef EXTRACT_ONLY
@@ -30,8 +28,13 @@ namespace N7z {
 #endif
 
 #endif
-
-
+	// todo: refactor
+	class CSzTree;
+	struct szExplodeData
+	{
+		CArchiveDatabase newDatabase;
+		CRecordVector<UInt64> folderSizes, folderPositions;
+	};
 class CHandler:
   #ifndef EXTRACT_ONLY
   public NArchive::COutHandler,
@@ -73,19 +76,18 @@ public:
   CHandler();
 
   // Explode the database into one database per folder.
-  void Explode(CObjectVector<CArchiveDatabase>& exploded,
-	  CRecordVector<UInt64>& folderSizes, 
-	  CRecordVector<UInt64>& folderPositions);
+  void Explode(CObjectVector<szExplodeData>& exploded);
 
 private:
 	
-	void Explode(CSzTree* tree, CObjectVector<CArchiveDatabase>& exploded, 
+	void Explode(CSzTree* tree, CObjectVector<szExplodeData>& exploded, 
 		int maxdepth, 
-		CArchiveDatabase* outArchive = NULL, int curDepth = 0);
+		szExplodeData* szExplode = NULL, int curDepth = 0);
 
 	void AddFolderToDatabase(CArchiveDatabaseEx& input, int folderIndex,
-		CArchiveDatabase& newDatabase);
-	void AddBlocksToDatabase(CArchiveDatabase& outArchive, CSzTree* tree);
+		szExplodeData& out);
+	void AddBlocksToDatabase(szExplodeData& out, CSzTree* tree);
+
   
 private:
   CMyComPtr<IInStream> _inStream;
