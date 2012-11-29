@@ -273,13 +273,13 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 			out.WriteDatabase(newDatabase, &headerMethod, headerOptions);
 			out.Close();
 
-#ifdef ENV_UNIX
+/*#ifdef ENV_UNIX
 			// Create a symlink for each file in the folder.
 			// This makes it seem as though each file is individually accessible.
-			for (int fileIndex = 0; fileIndex < exploded[x].Files.Size(); fileIndex++) {
+			for (int fileIndex = 0; fileIndex < newDatabase.Files.Size(); fileIndex++) {
 				AString oldfile, newfile;
 				UString woldfile = sstream.str().c_str();
-				UString wnewfile = outputPath + relativeFilePath + exploded[x].Files[fileIndex].Name + L".7z";
+				UString wnewfile = outputPath + relativeFilePath + newDatabase.Files[fileIndex].Name + L".7z";
 				ConvertUnicodeToUTF8(woldfile, oldfile);
 				ConvertUnicodeToUTF8(wnewfile, newfile);
 				const char* link_to = oldfile.GetBuffer();
@@ -296,7 +296,7 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 					
 				}
 			}
-#endif
+#endif*/
 		}		
 
 		archiveLink.Close(); // not needed but oh well
