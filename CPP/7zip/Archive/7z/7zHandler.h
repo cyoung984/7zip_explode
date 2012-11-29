@@ -76,13 +76,13 @@ public:
   CHandler();
 
   // Explode the database into one database per folder.
-  void Explode(CObjectVector<szExplodeData>& exploded);
+  void Explode(CObjectVector<szExplodeData>& exploded, const UInt64 maxDepth);
 
 private:
 	
 	void Explode(CSzTree* tree, CObjectVector<szExplodeData>& exploded, 
-		int maxdepth, 
-		szExplodeData* szExplode = NULL, int curDepth = 0);
+		UInt64 maxdepth, 
+		szExplodeData* szExplode = NULL, UInt64 curDepth = 0);
 
 	void AddFolderToDatabase(CArchiveDatabaseEx& input, int folderIndex,
 		szExplodeData& out);

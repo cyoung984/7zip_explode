@@ -77,8 +77,7 @@ void FixPathFormat(UString& path)
 HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 	bool stdInMode,
 	UStringVector &arcPaths, UStringVector &arcPathsFull,
-	UString& outputPath,
-	UInt64 &numErrors)
+	UString& outputPath, UInt64 maxDepth, UInt64 &numErrors)
 {
 	int numArcs = arcPaths.Size();
 	for (int i = 0; i < numArcs; i++)
@@ -188,7 +187,7 @@ HRESULT ExplodeArchives(CCodecs *codecs, const CIntVector &formatIndices,
 
 		// Explode the archive into each folder
 		CObjectVector<szExplodeData> exploded;
-		szHandler->Explode(exploded);
+		szHandler->Explode(exploded, maxDepth);
 	
 		if (exploded.Size() == 0) {
 			SHOW_ERROR("Empty archive!");

@@ -86,7 +86,8 @@ enum Enum
   kTechMode,
   kShareForWrite,
   kCaseSensitive,
-  kCalcCrc
+  kCalcCrc,
+  kDepthLevel
 };
 
 }
@@ -155,7 +156,8 @@ static const CSwitchForm kSwitchForms[] =
     { L"SLT", NSwitchType::kSimple, false },
     { L"SSW", NSwitchType::kSimple, false },
     { L"SSC", NSwitchType::kPostChar, false, 0, 0, L"-" },
-    { L"SCRC", NSwitchType::kSimple, false }
+    { L"SCRC", NSwitchType::kSimple, false },
+	{ L"D",  NSwitchType::kUnLimitedPostString, false, 1}
   };
 
 static const CCommandForm g_CommandForms[] =
@@ -870,6 +872,10 @@ void CArchiveCommandLineParser::Parse2(CArchiveCommandLineOptions &options)
       ThrowUserErrorException();
   }
 
+  if (parser[NKey::kDepthLevel].ThereIs && 
+	  parser[NKey::kDepthLevel].PostStrings.Size() == 1) {
+	  options.explodeDepth = parser[NKey::kDepthLevel].PostStrings[0];
+  }
   AddToCensorFromNonSwitchesStrings(
       curCommandIndex, options.WildcardCensor,
       nonSwitchStrings, recursedType, thereAreSwitchIncludes, codePage);

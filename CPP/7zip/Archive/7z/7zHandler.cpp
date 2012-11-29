@@ -223,9 +223,9 @@ void CHandler::AddBlocksToDatabase(szExplodeData& out, CSzTree* tree)
 }
 
 void CHandler::Explode(CSzTree* tree, CObjectVector<szExplodeData>& exploded, 
-	int maxdepth, szExplodeData* szExplode, int curDepth)
+	UInt64 maxdepth, szExplodeData* szExplode, UInt64 curDepth)
 {
-	if (curDepth < maxdepth) {
+	if (maxdepth == 0 || curDepth < maxdepth) {
 		// explode tree into an archive per block then explode its children
 		int blockIndex = 0;
 		unsigned int block = 0;
@@ -242,7 +242,7 @@ void CHandler::Explode(CSzTree* tree, CObjectVector<szExplodeData>& exploded,
 		}
 
 	} else {
-		// put all blocks in tree, and all of its children into a single archive
+		// put all blocks in tree, and all of its children, into a single archive
 		szExplodeData explode;
 		bool top_level = false;
 		if (!szExplode) {
@@ -292,7 +292,7 @@ void CHandler::AddFolderToDatabase(CArchiveDatabaseEx& input, int folderIndex,
 }
 
 // Explode the database into one database per folder.
-void CHandler::Explode(CObjectVector<szExplodeData>& exploded)
+void CHandler::Explode(CObjectVector<szExplodeData>& exploded, const UInt64 maxDepth)
 {
 	wprintf(L"Archive has %i blocks\n", _db.Folders.Size());
 	// Parse the archive into its directory tree and associate folders (blocks)
@@ -313,10 +313,8 @@ void CHandler::Explode(CObjectVector<szExplodeData>& exploded)
 		unsigned int folderIndex = _db.FileIndexToFolderIndexMap[x];
 		if (!file.IsDir) structuredDir.AddBlock(folderIndex);
 	}
-	archiveStructure.Print();
-
-	
-	Explode(&archiveStructure, exploded, 2);
+	archiveStructure.Print();	
+	Explode(&archiveStructure, exploded, maxDepth);
 	
 	/*for (int folderIndex = 0; folderIndex < _db.Folders.Size(); folderIndex++)
 	{
