@@ -188,7 +188,7 @@ public:
 		return leaves.Size();
 	}
 
-	void PreorderPrint(int depth = 0)
+	void Print(int depth = 0)
 	{
 		UString prefix;
 		for (int i = 0; i < depth; i++)
@@ -198,7 +198,7 @@ public:
 			blocks.Size());
 
 		for (int x = 0; x < leaves.Size(); x++)
-			leaves[x]->PreorderPrint(depth+1);
+			leaves[x]->Print(depth+1);
 	}
 
 	void AddBlock(unsigned int folderIndex)
@@ -313,14 +313,11 @@ void CHandler::Explode(CObjectVector<szExplodeData>& exploded)
 		unsigned int folderIndex = _db.FileIndexToFolderIndexMap[x];
 		if (!file.IsDir) structuredDir.AddBlock(folderIndex);
 	}
-	archiveStructure.PreorderPrint();
+	archiveStructure.Print();
 
-	// this code seems to work as expected
-	Explode(&archiveStructure, exploded, 1);
 	
-	// Do a preorder traversal of the archive tree and output each block
-	// until a maximum depth is reached. At that point, put all deeper blocks
-	// into a single archive.
+	Explode(&archiveStructure, exploded, 2);
+	
 	/*for (int folderIndex = 0; folderIndex < _db.Folders.Size(); folderIndex++)
 	{
 		CFolder& folder = _db.Folders[folderIndex];
