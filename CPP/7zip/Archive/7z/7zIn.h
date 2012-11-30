@@ -123,10 +123,10 @@ public:
 class CStreamSwitch;
 
 const UInt32 kHeaderSize = 32;
-#include <stdio.h> // todo: remove
+
 class CInArchive
 {
-public: // todo: change back to private
+private: 
   friend class CStreamSwitch;
 
   CMyComPtr<IInStream> _stream;
@@ -162,7 +162,7 @@ private:
   UInt64 ReadNumber() { return _inByteBack->ReadNumber(); }
   CNum ReadNum() { return _inByteBack->ReadNum(); }
   UInt64 ReadID() { 
-	  static const char* type_names[] = {
+	 /* static const char* type_names[] = {
 		  "kEnd", "kHeader", "kArchiveProperties", "kAdditionalStreamsInfo", 
 		  "kMainStreamsInfo", "kFilesInfo", "kPackInfo", "kUnPackInfo", "kSubStreamInfo",
 		  "kSize", "kCRC", "kFolder", "kCodersUnPackSize", "kNumUnPackStream",
@@ -175,8 +175,8 @@ private:
 
 	  printf("[id] %02X ",id);
 	  printf("%s\n", type_names[id]);
-	  return id;
-	/*  return _inByteBack->ReadNumber();*/
+	  return id;*/
+	  return _inByteBack->ReadNumber();
   }
   UInt32 ReadUInt32() { return _inByteBack->ReadUInt32(); }
   UInt64 ReadUInt64() { return _inByteBack->ReadUInt64(); }

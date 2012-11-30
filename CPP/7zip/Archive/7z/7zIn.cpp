@@ -879,7 +879,7 @@ HRESULT CInArchive::ReadHeader(
     #endif
     )
 {
-	printf("Buffer: %08X\n", _inByteBack->_buffer + _inByteBack->_pos);
+//	printf("Buffer: %08X\n", _inByteBack->_buffer + _inByteBack->_pos);
 
 	UInt64 type = ReadID();
 
@@ -963,7 +963,7 @@ HRESULT CInArchive::ReadHeader(
   CBoolVector antiFileVector;
   CNum numEmptyStreams = 0;
 
-  printf("Pre-loop Buffer: %08X\n", _inByteBack->_buffer + _inByteBack->_pos);
+//  printf("Pre-loop Buffer: %08X\n", _inByteBack->_buffer + _inByteBack->_pos);
   // change visibility back to private
   for (;;)
   { 
@@ -986,7 +986,7 @@ HRESULT CInArchive::ReadHeader(
         streamSwitch.Set(this, &dataVector);
         for (int i = 0; i < db.Files.Size(); i++){
           _inByteBack->ReadString(db.Files[i].Name);
-		wprintf(L"[kName] File found! %s\n", db.Files[i].Name);
+//		wprintf(L"[kName] File found! %s\n", db.Files[i].Name);
 		}
         break;
       }

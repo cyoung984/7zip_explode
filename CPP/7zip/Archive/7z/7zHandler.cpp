@@ -2,6 +2,7 @@
 
 #include "StdAfx.h"
 
+#include "../../../Common/StdOutStream.h"
 #include "../../../../C/CpuArch.h"
 
 #include "../../../Common/ComTry.h"
@@ -21,6 +22,7 @@
 #include "../Common/ParseProperties.h"
 #endif
 #endif
+
 
 using namespace NWindows;
 
@@ -58,12 +60,12 @@ STDMETHODIMP CHandler::GetNumberOfItems(UInt32 *numItems)
 class PathParser
 {
 private:
-	const UString* path;
+	const UString& path;
 	int slashpos, nextpos;
 
 public:
 	// path should remain valid for duration of this objects lifetime
-	PathParser(const UString* path) : path(path), slashpos(0), nextpos(-1)
+	PathParser(const UString& path) : path(path), slashpos(0), nextpos(-1)
 	{
 	}
 
@@ -74,13 +76,13 @@ public:
 		if (slashpos == -1) return false;
 
 		bool has_next = true;
-		nextpos = path->Find('/', slashpos);
+		nextpos = path.Find('/', slashpos);
 		if (nextpos == -1) {
-			nextpos = path->Length();
+			nextpos = path.Length();
 			has_next = false;				
 		} 
 		if (nextpos == slashpos) return false;
-		dir = path->Mid(slashpos, nextpos-slashpos);
+		dir = path.Mid(slashpos, nextpos-slashpos);
 
 		slashpos = has_next ? nextpos + 1 : -1;
 		return true;
@@ -133,14 +135,15 @@ private:
 		return AddDirCheckExist(key);
 	}
 
-protected:
+	CSzTree(const CSzTree& other);
+	CSzTree& operator=(const CSzTree& rhs);
 
 public:
 	CSzTree(const UString& key) : key(key) {}
 
-	virtual ~CSzTree() {
-		for (int i = 0; i < leaves.Size(); i++)
-			delete leaves[i];
+	virtual ~CSzTree() 
+	{
+		for (int i = 0; i < leaves.Size(); i++)	delete leaves[i];
 		leaves.Clear();
 	}
 
@@ -155,7 +158,7 @@ public:
 	// a file in this path should go).
 	CSzTree& AddDirectory(const UString& path)
 	{
-		PathParser p(&path);
+		PathParser p(path);
 		CSzTree* leaf = this;
 		UString dir;
 		while (p.GetNextDirectory(dir))
@@ -166,7 +169,7 @@ public:
 	// Find a directory relative to 'this'
 	bool FindRelativeDirectory(const UString& relative_dir, CSzTree** out)
 	{
-		PathParser p(&relative_dir);
+		PathParser p(relative_dir);
 		CSzTree* leaf = this;
 		UString dir;
 		while (p.GetNextDirectory(dir)) {
@@ -183,22 +186,17 @@ public:
 		return true;
 	}
 	
-	int GetNumberOfLeaves()
-	{
-		return leaves.Size();
-	}
-
 	void Print(int depth = 0)
 	{
 		UString prefix;
 		for (int i = 0; i < depth; i++)
 			prefix += L" ";
 
-		wprintf(L"%s%s [%i blocks]\n", prefix.GetBuffer(), key.GetBuffer(),
-			blocks.Size());
+		g_StdOut << prefix << key << " [" << blocks.Size() << " blocks]" << endl;
 
 		for (int x = 0; x < leaves.Size(); x++)
 			leaves[x]->Print(depth+1);
+		if (!depth) g_StdOut << endl;
 	}
 
 	void AddBlock(unsigned int folderIndex)
