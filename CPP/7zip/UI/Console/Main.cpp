@@ -31,6 +31,7 @@
 #include "ExtractCallbackConsole.h"
 #include "List.h"
 #include "Explode.h"
+#include "DataChecksum.h"
 #include "OpenCallbackConsole.h"
 #include "UpdateCallbackConsole.h"
 
@@ -69,6 +70,7 @@ static const char *kHelpString =
     "<Commands>\n"
     "  a: Add files to archive\n"
     "  b: Benchmark\n"
+	"  c: Generate checksum for data, excluding all 7z headers\n"
     "  d: Delete files from archive\n"
     "  e: Extract files from archive (without using directory names)\n"
     "  l: List contents of archive\n"
@@ -379,7 +381,8 @@ int Main2(
     }
   }
   else if (isExtractGroupCommand || options.Command.CommandType == NCommandType::kList
-	  || options.Command.CommandType == NCommandType::kExplode)
+	  || options.Command.CommandType == NCommandType::kExplode 
+	  || options.Command.CommandType == NCommandType::kDataChecksum)
   {
     if (isExtractGroupCommand)
     {
@@ -391,7 +394,6 @@ int Main2(
       #ifndef _NO_CRYPTO
       ecs->PasswordIsDefined = options.PasswordEnabled;
       ecs->Password = options.Password;
-	  stdStream << "using password " << ecs->Password << "\n";
       #endif
 
       ecs->Init();
@@ -514,7 +516,25 @@ int Main2(
 		if (result != S_OK)
 			throw CSystemException(result);
 	}
-  }
+	else if (options.Command.CommandType == NCommandType::kDataChecksum)
+	{
+		UInt64 numErrors = 0;
+		HRESULT result = DataChecksumArchives(
+			codecs, 
+			formatIndices,
+			options.StdInMode,
+			options.ArchivePathsSorted,
+			options.ArchivePathsFullSorted,
+			numErrors);
+		if (numErrors > 0) 
+		{
+			g_StdOut << endl << "Errors: " << numErrors << endl;
+			return NExitCode::kFatalError;
+		}
+		if (result != S_OK)
+			throw CSystemException(result);
+	}
+  } 
   else if (options.Command.IsFromUpdateGroup())
   {
     CUpdateOptions &uo = options.UpdateOptions;

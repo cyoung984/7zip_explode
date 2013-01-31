@@ -246,6 +246,7 @@
     <ClInclude Include="..\..\UI\Console\BenchCon.h" />
     <ClInclude Include="..\..\UI\Console\CompressionMode.h" />
     <ClInclude Include="..\..\UI\Console\ConsoleClose.h" />
+    <ClInclude Include="..\..\UI\Console\DataChecksum.h" />
     <ClInclude Include="..\..\UI\Console\Explode.h" />
     <ClInclude Include="..\..\UI\Console\ExtractCallbackConsole.h" />
     <ClInclude Include="..\..\UI\Console\List.h" />
@@ -471,6 +472,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\UI\Console\BenchCon.cpp" />
     <ClCompile Include="..\..\UI\Console\ConsoleClose.cpp" />
+    <ClCompile Include="..\..\UI\Console\DataChecksum.cpp" />
     <ClCompile Include="..\..\UI\Console\Explode.cpp" />
     <ClCompile Include="..\..\UI\Console\ExtractCallbackConsole.cpp" />
     <ClCompile Include="..\..\UI\Console\List.cpp" />

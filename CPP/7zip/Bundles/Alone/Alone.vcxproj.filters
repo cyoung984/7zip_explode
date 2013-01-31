@@ -768,6 +768,9 @@
     <ClInclude Include="..\..\UI\Console\Explode.h">
       <Filter>Console</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\UI\Console\DataChecksum.h">
+      <Filter>Console</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\UI\Console\BenchCon.cpp">
@@ -1413,6 +1416,9 @@
       <Filter>C</Filter>
     </ClCompile>
     <ClCompile Include="..\..\UI\Console\Explode.cpp">
+      <Filter>Console</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\UI\Console\DataChecksum.cpp">
       <Filter>Console</Filter>
     </ClCompile>
   </ItemGroup>
