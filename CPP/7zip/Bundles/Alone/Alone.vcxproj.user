@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>c Tests/hello.7z -oTests</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>p test/KISS_TEST_SET.7z -otest/</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)/Debug</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
