@@ -5,7 +5,7 @@ Forked from http://sourceforge.net/projects/sevenzip
 
 Modified version of 7zip which supports exploding an archive into its constituent blocks. A block may 
 contain more than one file. If the archive is setup in a certain way, each file can get its own block and then
-exploding becomes more effective. 
+exploding becomes more effective. Exploding also works on encrypted archives that don't have filenames encrypted. 
 
 ## Building.
 A Visual Studio 2010 solution is provided in CPP/7zip/Bundles/Alone which can be used to build it.
