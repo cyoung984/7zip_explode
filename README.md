@@ -3,7 +3,7 @@ Forked from http://sourceforge.net/projects/sevenzip
 7zip_explode
 =============
 
-Modified version of 7zip which supports archive exploding an archive into its constituent blocks. A block may 
+Modified version of 7zip which supports exploding an archive into its constituent blocks. A block may 
 contain more than one file. If the archive is setup in a certain way, each file can get its own block and then
 exploding becomes more effective. 
 
