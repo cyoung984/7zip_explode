@@ -42,3 +42,43 @@ a separate one for the first 2 directory levels, you'd do
 
 ` Alone p archive.7z -d2 `
 
+Finally, to checksum the data you use the `c` option:
+
+```
+$ Alone c test/KISS_TEST_SET.7z
+
+7-Zip (A) 9.20  Copyright (c) 1999-2010 Igor Pavlov  2010-11-18
+
+Checking : test\KISS_TEST_SET.7z
+
+D686A2E0
+F4D9920D
+1687120A
+6AC8C777
+C88AE9D7
+FB022B1F
+A03AC19E
+C896DA50
+41F8568B
+475A5E7E
+95AF17FC
+D2C1772C
+9763FB1F
+F22A79A4
+F7CE7DCF
+117B562D
+795D185C
+860F41E2
+6C4C0FAC
+C2346AF7
+93C62D49
+175654DB
+```
+
+The checksums are printed starting from block 0.
+
+## Tips:
+If you are creating an archive and wish to explode it, you should ensure that each file is put into its own block. An 
+easy way to achieve this is to create the archive with its compression level set to store. This, obviously, won't
+compress the files but each file will get its own block. This shouldn't be an issure if you're packaging video files
+which are already compressed anyway.
